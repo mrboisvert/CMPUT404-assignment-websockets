@@ -1,3 +1,9 @@
+This project was forked from https://github.com/abramhindle/CMPUT404-assignment-websockets. All additional changes were made by Michael Boisvert
+and are license'd under the same Apache 2 license.
+
+Some code in the sockets.py file was based on code from the Cmput 404 slides
+Websockets examples: https://github.com/uofa-cmput404/cmput404-slides/blob/master/examples/WebSocketsExamples/chat.py
+
 CMPUT404-assignment-websockets
 ==============================
 
@@ -19,9 +25,6 @@ pip install -r requirements.txt
 
 Contributors / Licensing
 ========================
-
-This project was forked from https://github.com/abramhindle/CMPUT404-assignment-websockets. All additional changes were made by Michael Boisvert 
-and are license'd under the same Apache 2 license.
 
 The original license and contributor information is retained below:
 

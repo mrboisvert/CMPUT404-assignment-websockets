@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
+
+# Code for Client class, read_ws, and subscribe_socket were based on code from the Cmput 404 slides WebSocket examples: https://github.com/uofa-cmput404/cmput404-slides/blob/master/examples/WebSocketsExamples/chat.py
+# This project was forked from: https://github.com/abramhindle/CMPUT404-assignment-websockets
+
+# Copyright 2021 Michael Boisvert
 # Copyright (c) 2013-2014 Abram Hindle
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +36,7 @@ class World:
         self.clear()
         # we've got listeners now!
         self.listeners = list()
-        
+
     def add_set_listener(self, listener):
         self.listeners.append( listener )
 
@@ -55,7 +60,7 @@ class World:
 
     def get(self, entity):
         return self.space.get(entity,dict())
-    
+
     def world(self):
         return self.space
 
@@ -71,19 +76,21 @@ class Client:
 
 clients = list()
 
-myWorld = World()        
+myWorld = World()
 
 def set_listener( entity, data ):
     ''' do something with the update ! '''
+    for client in clients:
+        client.put(json.dumps({entity:data}))
 
 myWorld.add_set_listener( set_listener )
-        
+
 @app.route('/')
 def hello():
     '''Return something coherent here.. perhaps redirect to /static/index.html '''
     return redirect("/static/index.html")
 
-def read_ws(ws):
+def read_ws(ws, client):
     '''A greenlet function that reads from the websocket and updates the world'''
     # XXX: TODO IMPLEMENT ME
     try:
@@ -91,46 +98,54 @@ def read_ws(ws):
             msg = ws.receive()
             print("WS RECV: %s" % msg)
             if (msg is not None):
+                #print(msg)
                 object = json.loads(msg)
-                entity = object["entity"]
-                entity_data = object["data"]
                 # Update the world
-                if entity in myWorld.world():
-                    print("update")
-                    myWorld.update(entity, "colour", entity_data["colour"])
-                    myWorld.update(entity, "radius", entity_data["radius"])
-                    myWorld.update(entity, "x", entity_data["x"])
-                    myWorld.update(entity, "y", entity_data["y"])
-                else:
-                    myWorld.set(entity, entity_data)
+                for entity, data in object.items():
+                    if entity in myWorld.world():
+                        #print("update")
+                        if "colour" in entity:
+                            myWorld.update(entity, "colour", data["colour"])
+                        if "radius" in entity:
+                            myWorld.update(entity, "radius", data["radius"])
+                        if "x" in entity:
+                            myWorld.update(entity, "x", data["x"])
+                        if "y" in entity:
+                            myWorld.update(entity, "y", data["y"])
+                    else:
+                        myWorld.set(entity, data)
                 # Update the clients
-                for client in clients:
-                    client.put(json.dumps(myWorld.world))
+                myWorld.update_listeners(entity)
+
             else:
-                break
-    except:
+                print("no message")
+                pass
+    except Exception as e:
+        print("EXCEPTION")
+        print(e)
         '''Done'''
 
 @sockets.route('/subscribe')
 def subscribe_socket(ws):
     '''Fufill the websocket URL of /subscribe, every update notify the
        websocket and read updates from the websocket '''
-    print("subscribe")
     client = Client()
     clients.append(client)
     # Tell client about current world
-    #client.put(json.dumps(myWorld.world()))
-    g = gevent.spawn(read_ws, ws) # read from websocket 
-    #try:
-    while True:
-        # notify client of update
-        msg = client.get()
-        ws.send(msg)
-    '''except Exception as e:
+    for entity in myWorld.world():
+        myWorld.update_listeners(entity)
+    g = gevent.spawn(read_ws, ws, client) # read from websocket
+    try:
+        while True:
+            # notify client of update
+            msg = client.get()
+            ws.send(msg)
+    except Exception as e:
         print("WS Error %s" % e)
     finally:
+        print("ENDING CONNECTION")
         clients.remove(client)
-        gevent.kill(g)'''
+        gevent.kill(g)
 
 
 # I give this to you, this is how you get the raw body/data portion of a post in flask
@@ -163,7 +178,7 @@ def update(entity):
         myWorld.set(entity, entity_data)
     return myWorld.get(entity)
 
-@app.route("/world", methods=['POST','GET'])    
+@app.route("/world", methods=['POST','GET'])
 def world():
     '''you should probably return the world here'''
     if request.method == "POST":
@@ -173,7 +188,7 @@ def world():
             myWorld.set(key, new_world[key])
     return myWorld.world()
 
-@app.route("/entity/<entity>")    
+@app.route("/entity/<entity>")
 def get_entity(entity):
     '''This is the GET version of the entity interface, return a representation of the entity'''
     return myWorld.get(entity)

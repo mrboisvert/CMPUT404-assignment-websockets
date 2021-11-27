@@ -1,20 +1,20 @@
 <!DOCTYPE HTML>
-<html> 
-  <head> 
-    <title>Websockets Assignment</title> 
-    <meta charset="utf-8" /> 
+<html>
+  <head>
+    <title>Websockets Assignment</title>
+    <meta charset="utf-8" />
     <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
         Copyright 2021 Michael Boisvert
         Copyright 2013 Google, Abram Hindle
-        
+
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
         You may obtain a copy of the License at
-        
+
             http://www.apache.org/licenses/LICENSE-2.0
-        
+
         Unless required by applicable law or agreed to in writing, software
         distributed under the License is distributed on an "AS IS" BASIS,
         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,10 +22,10 @@
         limitations under the License.
     "/>
     <script src="json2.js"></script>
-  </head> 
-  <body bgcolor="white" height="100%" width="100%"> 
+  </head>
+  <body bgcolor="white" height="100%" width="100%">
     <div id="debug"></div>
-    <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
+    <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas>
 
     <script>
       // Fix me
@@ -48,15 +48,16 @@ world = {};
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
-        beginPath();                
+        beginPath();
         lineWidth = 3;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
+        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);
+        //stroke();
+        fill();
     }
 }
 
@@ -126,8 +127,9 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
-    message = {"entity": JSON.stringify(entity), "data": JSON.stringify(data)}
-    socket.send(message)
+    console.log(entity)
+    message = {entity:data}
+    socket.send(JSON.stringify(message))
 }
 var counter = 0;
 function addEntityWithoutName(data) {
@@ -135,14 +137,14 @@ function addEntityWithoutName(data) {
     addEntity(name,data);
 }
 
-// canvas + mouse/touch is complicated 
+// canvas + mouse/touch is complicated
 // I give you this because well the mouse/touch stuff is a total
 // pain to get right. This has some out of context bug too.
 mouse = (function() {
-    // Now this isn't the most popular way of doing OO in 
+    // Now this isn't the most popular way of doing OO in
     // Javascript, but it relies on lexical scope and I like it
     // This isn't 301 so I'm not totally bound to OO :)
-    var self;    
+    var self;
     self = {
         clicked: 0,
         // these are listener lists append to them
@@ -191,7 +193,7 @@ mouse = (function() {
             }
         },
         touchstart: function(e) {
-            self.lasttouch = e;                                         
+            self.lasttouch = e;
             return self.mousedown(e);
         },
 	touchend: function(e) {
@@ -209,13 +211,13 @@ mouse = (function() {
                     self.callListeners(self.mousedraggers,x,y,self.clicked,e);
 	        }
                 self.callListeners(self.mousemovers,x,y,self.clicked,e);
-            }            
+            }
 	},
 	touchmove: function(e) {
-            self.lasttouch = e;                                         
+            self.lasttouch = e;
             return self.mousemove(e);
 	},
-		                                   
+
         // Install the mouse listeners
 	mouseinstall: function() {
             canvas.addEventListener("mousedown",  self.mousedown, false);
@@ -234,16 +236,16 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'yellow','radius':25});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'red','radius':25});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'purple',
+                          'radius':20});
 });
 
 
@@ -253,25 +255,31 @@ function update() {
 
 
 function wsSetup() {
-    var url = "ws://"+host+"/subscribe";   
+    var url = "ws://"+host+"/subscribe";
     socket = new WebSocket(url);
     socket.onopen = function() {
+        // console.log("open");
+        // console.log(url);
         //XXX: TODO What are you going to do here?
-        debug("WebSocket Open");
+        // debug("WebSocket Open");
     };
     socket.onerror = function(msg) {
         console.log(url);
         console.log("WebSocket Error:" + msg);
     };
-    socket.onmessage = function(msg) {  
+    socket.onmessage = function(msg) {
         try {
-            debug("WebSocket Recv:" + msg.data); 
-            world = JSON.parse(msg.data)
-            drawNextFrame();  
+            // console.log("Old World: " + world)
+            message = JSON.parse(msg.data)
+            for (var entity in message){
+              world[entity] = message[entity]
+            }
+            // console.log("New World: " + world)
+            drawNextFrame();
         } catch (e) {
             alert("socket on message: " + e);
         }
-    }; 
+    };
 }
 
 wsSetup();
