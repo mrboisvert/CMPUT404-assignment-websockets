@@ -20,6 +20,11 @@ pip install -r requirements.txt
 Contributors / Licensing
 ========================
 
+This project was forked from https://github.com/abramhindle/CMPUT404-assignment-websockets. All additional changes were made by Michael Boisvert 
+and are license'd under the same Apache 2 license.
+
+The original license and contributor information is retained below:
+
 Generally everything is LICENSE'D under the Apache 2 license by Abram Hindle.
 
 freetests.py is LICENSE'D under a BSD-like license:

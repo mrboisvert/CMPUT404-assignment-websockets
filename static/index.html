@@ -6,6 +6,7 @@
     <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
+        Copyright 2021 Michael Boisvert
         Copyright 2013 Google, Abram Hindle
         
         Licensed under the Apache License, Version 2.0 (the "License");
@@ -125,6 +126,8 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+    message = {"entity": JSON.stringify(entity), "data": JSON.stringify(data)}
+    socket.send(message)
 }
 var counter = 0;
 function addEntityWithoutName(data) {
@@ -254,14 +257,17 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        debug("WebSocket Open");
     };
     socket.onerror = function(msg) {
-        debug("WebSocket Error:" + msg.data);
+        console.log(url);
+        console.log("WebSocket Error:" + msg);
     };
     socket.onmessage = function(msg) {  
         try {
-            debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            debug("WebSocket Recv:" + msg.data); 
+            world = JSON.parse(msg.data)
+            drawNextFrame();  
         } catch (e) {
             alert("socket on message: " + e);
         }
